@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admina - Klub Komiksowy</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Klub Komiksowy</h1>
+            <img src="../assets/images/logo.png" alt="Logo Klubu Komiksowego" style="height: 100px;">
+        </div>
+        <nav>
+            <ul style="list-style-type: none; display: flex; gap: 20px;">
+                <li><a href="formularz-rejestracyjny.html">Formularz Rejestracyjny</a></li>
+                <li><a href="galeria.html">Galeria</a></li>
+                <li><a href="index.html#wydarzenia">Wydarzenia</a></li>
+                <li><a href="jak-dolaczyc.html">Jak dołączyć</a></li>
+                <li><a href="chat.html">Czat</a></li>
+                <li><a href="admin.html">Panel Admina</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="admin-login">
+            <h2>Logowanie Admina</h2>
+            <form id="adminLoginForm">
+                <label for="admin-username">Nazwa użytkownika:</label>
+                <input type="text" id="admin-username" name="username" required><br><br>
+                <label for="admin-password">Hasło:</label>
+                <input type="password" id="admin-password" name="password" required><br><br>
+                <input type="submit" value="Zaloguj">
+            </form>
+        </section>
+        <section id="admin-panel" style="display: none;">
+            <h2>Panel Admina</h2>
+            <div id="admin-messages">
+                <!-- Wiadomości czatu z opcją usuwania będą wyświetlane tutaj -->
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2025 Klub Komiksowy. Wszelkie prawa zastrzeżone.</p>
+    </footer>
+    <script src="../assets/js/scripts.js"></script>
+    <script>
+        // Pobierz wiadomości czatu z serwera i wyświetl je w panelu admina
+        function loadAdminMessages() {
+            fetch('/chat')
+                .then(response => response.json())
+                .then(messages => {
+                    const adminMessages = document.getElementById('admin-messages');
+                    adminMessages.innerHTML = '';
+                    messages.forEach(message => {
+                        const messageItem = document.createElement('div');
+                        messageItem.innerHTML = `
+                            <p><strong>${message.username}:</strong> ${message.message}</p>
+                            <p><small>${new Date(message.timestamp).toLocaleString()}</small></p>
+                            <button onclick="deleteMessage('${message.timestamp}')">Usuń</button>
+                            <hr>
+                        `;
+                        adminMessages.appendChild(messageItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Błąd podczas pobierania wiadomości czatu:', error);
+                });
+        }
+
+        // Obsługa logowania admina
+        document.getElementById('adminLoginForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/login', {
+                method: 'POST',
+                body: JSON.stringify({
+                    username: document.getElementById('admin-username').value,
+                    password: document.getElementById('admin-password').value
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === 'Zalogowano pomyślnie') {
+                    document.getElementById('admin-login').style.display = 'none';
+                    document.getElementById('admin-panel').style.display = 'block';
+                    loadAdminMessages();
+                } else {
+                    alert('Nieprawidłowe dane logowania');
+                }
+            })
+            .catch(error => {
+                console.error('Błąd podczas logowania:', error);
+            });
+        });
+
+        // Funkcja do usuwania wiadomości czatu
+        function deleteMessage(timestamp) {
+            fetch(`/chat/${timestamp}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                loadAdminMessages();
+            })
+            .catch(error => {
+                console.error('Błąd podczas usuwania wiadomości:', error);
+            });
+        }
+
+        // Sprawdź, czy użytkownik jest adminem i wyświetl panel admina
+        fetch('/isAdmin')
+        .then(response => response.json())
+        .then(data => {
+            if (data.isAdmin) {
+                document.getElementById('admin-login').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                loadAdminMessages();
+            }
+        })
+        .catch(error => {
+            console.error('Błąd podczas sprawdzania statusu admina:', error);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Czat - Klub Komiksowy</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Klub Komiksowy</h1>
+            <img src="../assets/images/logo.png" alt="Logo Klubu Komiksowego" style="height: 100px;">
+        </div>
+        <nav>
+            <ul style="list-style-type: none; display: flex; gap: 20px;">
+                <li><a href="formularz-rejestracyjny.html">Formularz Rejestracyjny</a></li>
+                <li><a href="galeria.html">Galeria</a></li>
+                <li><a href="index.html#wydarzenia">Wydarzenia</a></li>
+                <li><a href="jak-dolaczyc.html">Jak dołączyć</a></li>
+                <li><a href="chat.html">Czat</a></li>
+                <li><a href="admin.html">Panel Admina</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="chat">
+            <h2>Czat</h2>
+            <div id="chat-messages">
+                <!-- Wiadomości czatu będą wyświetlane tutaj -->
+            </div>
+            <form id="chatForm">
+                <label for="chat-username">Nazwa użytkownika:</label>
+                <input type="text" id="chat-username" name="username" required><br><br>
+                <label for="chat-message">Wiadomość:</label><br>
+                <textarea id="chat-message" name="message" rows="4" cols="50" required></textarea><br><br>
+                <input type="submit" value="Wyślij">
+            </form>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2025 Klub Komiksowy. Wszelkie prawa zastrzeżone.</p>
+    </footer>
+    <script src="../assets/js/scripts.js"></script>
+    <script>
+        // Pobierz wiadomości czatu z serwera i wyświetl je
+        function loadChatMessages() {
+            fetch('/chat')
+                .then(response => response.json())
+                .then(messages => {
+                    const chatMessages = document.getElementById('chat-messages');
+                    chatMessages.innerHTML = '';
+                    messages.forEach(message => {
+                        const messageItem = document.createElement('div');
+                        messageItem.innerHTML = `
+                            <p><strong>${message.username}:</strong> ${message.message}</p>
+                            <p><small>${new Date(message.timestamp).toLocaleString()}</small></p>
+                            <hr>
+                        `;
+                        chatMessages.appendChild(messageItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Błąd podczas pobierania wiadomości czatu:', error);
+                });
+        }
+
+        // Załaduj wiadomości czatu przy ładowaniu strony
+        loadChatMessages();
+
+        // Obsługa wysyłania wiadomości czatu
+        document.getElementById('chatForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/chat', {
+                method: 'POST',
+                body: JSON.stringify({
+                    username: document.getElementById('chat-username').value,
+                    message: document.getElementById('chat-message').value
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                loadChatMessages();
+                document.getElementById('chatForm').reset();
+            })
+            .catch(error => {
+                console.error('Błąd:', error);
+            });
+        });
+    </script>
+</body>
+</html>

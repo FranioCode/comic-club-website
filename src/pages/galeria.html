@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeria - Klub Komiksowy</title>
+    <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body>
+    <header>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Klub Komiksowy</h1>
+            <img src="/assets/images/logo.png" alt="Logo Klubu Komiksowego" style="height: 100px;">
+        </div>
+        <nav>
+            <ul style="list-style-type: none; display: flex; gap: 20px;">
+                <li><a href="formularz-rejestracyjny.html">Formularz Rejestracyjny</a></li>
+                <li><a href="galeria.html">Galeria</a></li>
+                <li><a href="index.html#wydarzenia">Wydarzenia</a></li>
+                <li><a href="jak-dolaczyc.html">Jak dołączyć</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="galeria">
+            <h2>Galeria</h2>
+            <p>Zdjęcia i obrazy związane z naszym klubem.</p>
+            <!-- Dodaj tutaj zawartość galerii -->
+            <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+                <label for="file">Dodaj zdjęcie:</label>
+                <input type="file" id="file" name="file" accept="image/*" required><br><br>
+                <label for="author">Imię autora:</label>
+                <input type="text" id="author" name="author" required><br><br>
+                <input type="submit" value="Wyślij">
+            </form>
+            <div id="gallery">
+                <!-- Obrazy będą wyświetlane tutaj -->
+            </div>
+        </section>
+        <section id="admin-panel" style="display: none;">
+            <h2>Panel Administratora</h2>
+            <div id="admin-gallery">
+                <!-- Obrazy do edycji i usuwania będą wyświetlane tutaj -->
+            </div>
+            <button id="logoutButton">Wyloguj</button>
+        </section>
+        <section id="login-section">
+            <h2>Logowanie</h2>
+            <form id="loginForm">
+                <label for="username">Nazwa użytkownika:</label>
+                <input type="text" id="username" name="username" required><br><br>
+                <label for="password">Hasło:</label>
+                <input type="password" id="password" name="password" required><br><br>
+                <input type="submit" value="Zaloguj">
+            </form>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2025 Klub Komiksowy. Wszelkie prawa zastrzeżone.</p>
+    </footer>
+    <script src="/assets/js/scripts.js"></script>
+    <script>
+        // Pobierz obrazy z serwera i wyświetl je w galerii
+        fetch('/images')
+            .then(response => response.json())
+            .then(images => {
+                console.log('Pobrane obrazy:', images); // Dodane logowanie
+                const gallery = document.getElementById('gallery');
+                const adminGallery = document.getElementById('admin-gallery');
+                images.forEach(image => {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.style.margin = '10px';
+                    imgContainer.style.display = 'inline-block';
+                    imgContainer.style.textAlign = 'center';
+
+                    const img = document.createElement('img');
+                    img.src = `/uploads/${image.filename}`;
+                    img.alt = 'Zdjęcie w galerii';
+                    img.style.width = '200px';
+
+                    const author = document.createElement('p');
+                    author.textContent = `Autor: ${image.author}`;
+
+                    imgContainer.appendChild(img);
+                    imgContainer.appendChild(author);
+                    gallery.appendChild(imgContainer);
+
+                    // Dodaj do panelu administratora
+                    const adminImgContainer = imgContainer.cloneNode(true);
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Edytuj';
+                    editButton.onclick = () => {
+                        const newAuthor = prompt('Podaj nowe imię autora:', image.author);
+                        if (newAuthor) {
+                            fetch(`/images/${image.filename}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ author: newAuthor })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                alert(data.message);
+                                location.reload();
+                            })
+                            .catch(error => {
+                                console.error('Błąd:', error);
+                            });
+                        }
+                    };
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Usuń';
+                    deleteButton.onclick = () => {
+                        if (confirm('Czy na pewno chcesz usunąć ten obraz?')) {
+                            fetch(`/images/${image.filename}`, {
+                                method: 'DELETE'
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                alert(data.message);
+                                location.reload();
+                            })
+                            .catch(error => {
+                                console.error('Błąd:', error);
+                            });
+                        }
+                    };
+
+                    adminImgContainer.appendChild(editButton);
+                    adminImgContainer.appendChild(deleteButton);
+                    adminGallery.appendChild(adminImgContainer);
+                });
+            })
+            .catch(error => {
+                console.error('Błąd podczas pobierania obrazów:', error); // Dodane logowanie błędów
+            });
+
+        // Obsługa przesyłania plików
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Błąd:', error); // Dodane logowanie błędów
+            });
+        });
+
+        // Obsługa logowania
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/login', {
+                method: 'POST',
+                body: JSON.stringify({
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Nieprawidłowe dane logowania');
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message);
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+            })
+            .catch(error => {
+                alert(error.message);
+                console.error('Błąd:', error); // Dodane logowanie błędów
+            });
+        });
+
+        // Obsługa wylogowania
+        document.getElementById('logoutButton').addEventListener('click', function() {
+            fetch('/logout', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                document.getElementById('login-section').style.display = 'block';
+                document.getElementById('admin-panel').style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Błąd:', error); // Dodane logowanie błędów
+            });
+        });
+    </script>
+</body>
+</html>
